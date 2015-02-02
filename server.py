@@ -12,7 +12,7 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         self.wfile.write("Hello Bucky!")
 
 
-PORT=1234
+PORT=4000
 httpd = SocketServer.ThreadingTCPServer(("", PORT), Handler) # Can also use ForkingTCPServer
 print "serving at port", PORT
 httpd.serve_forever()
