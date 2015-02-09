@@ -1,11 +1,11 @@
 #!/usr/bin/python
 
 from subprocess import call
-import SimpleHTTPServer, SocketServer, cgi
-import random
+import SimpleHTTPServer, SocketServer, cgi, cgitb
+import random, os
 import re, datetime
-
 random.seed()
+
 
 class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
@@ -13,17 +13,26 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         
+        h5ms = os.listdir("./")
+        h5ms = [x for x in h5ms if ".h5m" in x]
+        if len(h5ms) == 0: h5ms = ["None"]
+
         if "/Slice" in self.path:
             
             self.send_response(200)      # Send 200 OK
             self.send_header("Content-type", "png")
-
             self.end_headers()
 
             #prepare the image to return 
             
             #get arguments from the path
-            args = self.path.split('?')[1]
+            args = self.path.split('?')
+            if len(args) > 1: 
+                args = args[1]
+            else:
+                self.wfile.write("Please enter a valid filename:\n")
+                for x in h5ms: self.wfile.write(x+"\n")
+                return
             args = args.split('&')
 
             arg_dict = {}
@@ -32,6 +41,8 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                 arg_dict[temp[0]]=temp[1]
 
             #create the slice plot
+            if not arg_dict.has_key('filename'):
+                self.wfile.write("Please enter a valid filename")
             filename = arg_dict['filename']
             axis = arg_dict['axis']
             coord = arg_dict ['coord']
@@ -43,9 +54,45 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             self.wfile.write( f.read() )
             return
 
+        if "/Upload" in self.path:
+            self.send_response(200)
+            self.send_header("Content-type","text/html")
+            self.wfile.write("""\<!DOCTYPE html>
+<html>
+<body>
+
+<form action="Slice" method="post" enctype="multipart/form-data">
+    Select image to upload:
+    <input type="file" name="fileToUpload" id="fileToUpload">
+    <input type="submit" value="Upload .h5m File" name="submit">
+</form>
+
+</body>
+                             </html>""")
+            return
         self.send_response(200)
         self.wfile.write("URL is invalid.")
+        return 
+
+    def do_POST(self):
+        # We handle here all the POSTs
+        self.send_response(200)
+        form = cgi.FieldStorage(
+            fp=self.rfile,
+            headers=self.headers,
+            environ={'REQUEST_METHOD':'POST',
+                     'CONTENT_TYPE':self.headers['Content-Type'],
+                     })
+        fileitem = form['fileToUpload']
+        filename = fileitem.filename
+        fileout = open(filename, 'wb')
+        while 1:
+            chunk = fileitem.file.read(10000)
+            if not chunk : break 
+            fileout.write(chunk)
+        fileout.close()
         
+
 
 PORT=4000
 httpd = SocketServer.ThreadingTCPServer(("", PORT), Handler) # Can also use ForkingTCPServer
