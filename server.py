@@ -50,12 +50,46 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             f = open("temp.png",'r')
             self.wfile.write( f.read() )
             return
+        if "/Upload" in self.path:
+            self.send_response(200)
+            self.send_header("Content-type","text/html")
+            self.wfile.write("""\<!DOCTYPE html>
+<html>
+<body>
+
+<form action="Slice" method="post" enctype="multipart/form-data">
+    Select image to upload:
+    <input type="file" name="fileToUpload" id="fileToUpload">
+    <input type="submit" value="Upload .h5m File" name="submit">
+</form>
+
+</body>
+                             </html>""")
+            return
 
         
         self.wfile.write("Path is invalid.")
         self.send_response(200)
         self.end_headers()
         return 
+
+    def do_POST(self):
+        # We handle here all the POSTs
+        self.send_response(200)
+        form = cgi.FieldStorage(
+            fp=self.rfile,
+            headers=self.headers,
+            environ={'REQUEST_METHOD':'POST',
+                     'CONTENT_TYPE':self.headers['Content-Type'],
+                     })
+        fileitem = form['fileToUpload']
+        filename = fileitem.filename
+        fileout = open(filename, 'wb')
+        while 1:
+            chunk = fileitem.file.read(10000)
+            if not chunk : break 
+            fileout.write(chunk)
+        fileout.close()
 
         
     def readme(self):
