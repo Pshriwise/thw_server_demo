@@ -57,7 +57,7 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 <html>
 <body>
 
-<form action="Slice" method="post" enctype="multipart/form-data">
+<form action="" method="post" enctype="multipart/form-data">
     Select image to upload:
     <input type="file" name="fileToUpload" id="fileToUpload">
     <input type="submit" value="Upload .h5m File" name="submit">
@@ -83,6 +83,11 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
                      'CONTENT_TYPE':self.headers['Content-Type'],
                      })
         fileitem = form['fileToUpload']
+        if ".h5m" not in fileitem.filename:
+            self.wfile.write("Not a valid mesh file.")
+            self.end_headers()
+            print "Invalid file upload attempted."
+            return
         filename = fileitem.filename
         fileout = open(filename, 'wb')
         while 1:
@@ -105,6 +110,7 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     
 
 PORT=4000
-httpd = SocketServer.ThreadingTCPServer(("", PORT), Handler) # Can also use ForkingTCPServer
+IP = ""
+httpd = SocketServer.ThreadingTCPServer((IP, PORT), Handler) # Can also use ForkingTCPServer
 print "serving at port", PORT
 httpd.serve_forever()
